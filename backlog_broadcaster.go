@@ -1,10 +1,12 @@
 package broadcaster
 
 import (
+	"sync"
 	"time"
 )
 
 type backlogCaster struct {
+	mu       sync.Mutex
 	timeout  time.Duration
 	backlog  int
 	send     chan Event
@@ -59,8 +61,8 @@ func (b *backlogCaster) updateListener(l *listener, backlog *leakingQueue) bool 
 		select {
 		case send <- e:
 		default:
-
 		}
+
 	}
 	timeOut.Stop()
 	return true
@@ -93,18 +95,24 @@ func (b *backlogCaster) closeListeners(listeners map[*listener]struct{}) {
 // Close the broadcaster goroutine and stop broadcasting. Can only be
 // be called once.
 func (b *backlogCaster) Close() {
+	b.mu.Lock()
+	defer b.mu.Unlock()
 	close(b.send)
 }
 
 // Send an Event to all the listeners. Sending on a closed broacaster
 // will panic.
 func (b *backlogCaster) Send(e Event) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
 	b.send <- e
 }
 
 // Listen returns a listener for this broadcaster. The listener will
 // updated with the backlog of the broadcaster.
 func (b *backlogCaster) Listen() Listener {
+	b.mu.Lock()
+	defer b.mu.Unlock()
 	// big enough to receive the full history without blocking
 	// the broadcaster
 	bufferedMessenger := make(chan Event, b.backlog)

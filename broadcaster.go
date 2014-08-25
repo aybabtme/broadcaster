@@ -1,6 +1,11 @@
 package broadcaster
 
+import (
+	"sync"
+)
+
 type broadcaster struct {
+	mu       sync.Mutex
 	send     chan Event
 	register chan *listener
 }
@@ -64,18 +69,24 @@ func (b *broadcaster) closeListeners(listeners map[*listener]struct{}) {
 // Close the broadcaster goroutine and stop broadcasting. Can only be
 // be called once.
 func (b *broadcaster) Close() {
+	b.mu.Lock()
+	defer b.mu.Unlock()
 	close(b.send)
 }
 
 // Send an Event to all the listeners. Sending on a closed broacaster
 // will panic.
 func (b *broadcaster) Send(e Event) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
 	b.send <- e
 }
 
 // Listen returns a listener for this broadcaster. The listener will
 // pickup the broadcast from where it is right now, without any history.
 func (b *broadcaster) Listen() Listener {
+	b.mu.Lock()
+	defer b.mu.Unlock()
 	l := &listener{
 		messenger: make(chan Event, 1),
 		listnC:    make(chan chan Event, 1),
