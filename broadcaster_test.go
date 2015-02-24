@@ -1,7 +1,6 @@
-package broadcaster_test
+package broadcaster
 
 import (
-	"github.com/aybabtme/broadcaster"
 	"log"
 	"math"
 	"sync"
@@ -9,7 +8,7 @@ import (
 )
 
 func TestCanBroadcast(t *testing.T) {
-	b := broadcaster.New()
+	b := New()
 
 	wg := sync.WaitGroup{}
 
@@ -36,7 +35,7 @@ func TestCanBroadcast(t *testing.T) {
 }
 
 func TestCanBroadcastWithHistory(t *testing.T) {
-	b := broadcaster.NewBacklog(4)
+	b := NewBacklog(4)
 
 	b.Send(-4)
 	b.Send(-3)
@@ -67,7 +66,7 @@ func TestCanBroadcastWithHistory(t *testing.T) {
 	wg.Wait()
 }
 
-func startListener(t *testing.T, l broadcaster.Listener, name string, wg *sync.WaitGroup, times int) {
+func startListener(t *testing.T, l Listener, name string, wg *sync.WaitGroup, times int) {
 	defer wg.Done()
 	defer l.Close()
 
