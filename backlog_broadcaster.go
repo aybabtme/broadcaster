@@ -3,6 +3,8 @@ package broadcaster
 import (
 	"sync"
 	"time"
+
+	"golang.org/x/net/context"
 )
 
 type backlogCaster struct {
@@ -102,10 +104,13 @@ func (b *backlogCaster) Close() {
 
 // Send an Event to all the listeners. Sending on a closed broacaster
 // will panic.
-func (b *backlogCaster) Send(e Event) {
+func (b *backlogCaster) Send(ctx context.Context, e Event) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	b.send <- e
+	select {
+	case <-ctx.Done():
+	case b.send <- e:
+	}
 }
 
 // Listen returns a listener for this broadcaster. The listener will

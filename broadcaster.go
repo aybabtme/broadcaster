@@ -2,6 +2,8 @@ package broadcaster
 
 import (
 	"sync"
+
+	"golang.org/x/net/context"
 )
 
 type broadcaster struct {
@@ -76,10 +78,13 @@ func (b *broadcaster) Close() {
 
 // Send an Event to all the listeners. Sending on a closed broacaster
 // will panic.
-func (b *broadcaster) Send(e Event) {
+func (b *broadcaster) Send(ctx context.Context, e Event) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	b.send <- e
+	select {
+	case <-ctx.Done():
+	case b.send <- e:
+	}
 }
 
 // Listen returns a listener for this broadcaster. The listener will
@@ -104,10 +109,18 @@ type listener struct {
 // false if the broadcaster is closed.
 //
 // Calling Next after a call to Close is an error and will panic.
-func (l *listener) Next() (Event, bool) {
-	l.listnC <- l.messenger
-	ev, hasMore := <-l.messenger
-	return ev, hasMore
+func (l *listener) Next(ctx context.Context) (Event, bool) {
+	select {
+	case <-ctx.Done():
+		return nil, false
+	case l.listnC <- l.messenger:
+	}
+	select {
+	case <-ctx.Done():
+		return nil, false
+	case ev, hasMore := <-l.messenger:
+		return ev, hasMore
+	}
 }
 
 // Close removes this listener from the broadcaster's listeners.

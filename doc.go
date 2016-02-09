@@ -13,6 +13,8 @@ and brings up to date listeners that just subscribed.
 */
 package broadcaster
 
+import "golang.org/x/net/context"
+
 // Broadcaster sends Events it receives to all its listeners.
 //
 // Failing to close a broadcaster that is not needed anymore is a
@@ -23,7 +25,7 @@ type Broadcaster interface {
 	Close()
 	// Send an Event to all the listeners. Sending on a closed broacaster
 	// will panic.
-	Send(e Event)
+	Send(ctx context.Context, e Event)
 	// Listen returns a listener for this broadcaster.
 	Listen() Listener
 }
@@ -40,7 +42,7 @@ type Listener interface {
 	// false if the broadcaster is closed.
 	//
 	// Calling Next after a call to Close is an error and will panic.
-	Next() (Event, bool)
+	Next(ctx context.Context) (Event, bool)
 	// Close removes this listener from the broadcaster's listeners.
 	Close()
 }
